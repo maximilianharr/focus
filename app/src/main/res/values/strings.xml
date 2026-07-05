@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Focus</string>
+    <string name="acc_desc">Detects the foreground app to block distracting apps and track daily allowances. Required for Focus to work.</string>
+    <string name="admin_desc">Prevents casual uninstall of Focus while blocking is active.</string>
+</resources>
