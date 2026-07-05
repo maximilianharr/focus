@@ -5,6 +5,9 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
@@ -14,6 +17,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +30,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -41,7 +47,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -75,6 +80,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -85,6 +92,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import kotlin.math.roundToInt
 
 val Dark = Color(0xFF23262B)
 val Bright = Color(0xFFF4F5F7)
@@ -187,7 +196,7 @@ fun Main(activity: MainActivity) {
     Scaffold(
         containerColor = Bright,
         topBar = {
-            Column {
+            Column(Modifier.statusBarsPadding()) {
                 StatusRow("Focus", focusOn)
                 StatusRow("Edit", editOn)
             }
@@ -209,7 +218,8 @@ fun Main(activity: MainActivity) {
                     onClick = {
                         if (tab == 0) showAdd = true
                         else scope.launch(Dispatchers.IO) {
-                            App.dao.insertWindow(CheatWindow(0, 12 * 60, 13 * 60, 0))
+                            val today = 1 shl (LocalDate.now().dayOfWeek.value - 1)
+                            App.dao.insertWindow(CheatWindow(0, 12 * 60, 13 * 60, today))
                         }
                     }
                 ) { Icon(Icons.Default.Add, "Add") }
@@ -247,16 +257,57 @@ fun StatusRow(label: String, on: Boolean) {
 fun BlockListTab(items: List<BlockItem>, editOn: Boolean, scope: CoroutineScope) {
     val apps = items.filter { it.type == TYPE_APP }
     val sites = items.filter { it.type == TYPE_SITE }
+    var editing by remember { mutableStateOf<BlockItem?>(null) }
     LazyColumn(Modifier.fillMaxSize()) {
         item { SectionHeader("Apps") }
         if (apps.isEmpty()) item { EmptyHint("No blocked apps") }
-        items(apps, key = { it.value }) { BlockRow(it, editOn, scope) }
+        items(apps, key = { it.value }) { BlockRow(it, editOn, scope) { editing = it } }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp), color = DimDark) }
         item { SectionHeader("Websites") }
         if (sites.isEmpty()) item { EmptyHint("No blocked websites") }
-        items(sites, key = { it.value }) { BlockRow(it, editOn, scope) }
+        items(sites, key = { it.value }) { BlockRow(it, editOn, scope) { editing = it } }
         item { Spacer(Modifier.height(80.dp)) }
     }
+    editing?.let { AllowanceDialog(it, editOn, scope) { editing = null } }
+}
+
+@Composable
+fun AllowanceDialog(item: BlockItem, editOn: Boolean, scope: CoroutineScope, onDismiss: () -> Unit) {
+    var allowance by remember { mutableIntStateOf(item.allowance) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Bright,
+        title = { Text(item.label, color = Dark) },
+        text = {
+            Column {
+                AllowanceSlider(allowance) { allowance = it }
+                if (!editOn) Text(
+                    "Without edit mode the allowance can only be lowered.",
+                    style = MaterialTheme.typography.bodySmall, color = DimDark,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                scope.launch(Dispatchers.IO) { addBlock(item.copy(allowance = allowance), editOn) }
+                onDismiss()
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+fun AllowanceSlider(allowance: Int, onChange: (Int) -> Unit) {
+    Text(
+        "Daily allowance: " +
+            if (allowance == 0) "0 min (fully blocked)" else "$allowance min",
+        color = Dark,
+    )
+    Slider(
+        allowance.toFloat(), { onChange((it / 5).roundToInt() * 5) },
+        valueRange = 0f..120f, steps = 23,
+    )
 }
 
 @Composable
@@ -270,9 +321,10 @@ fun EmptyHint(t: String) =
     Text(t, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = DimDark)
 
 @Composable
-fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope) {
+fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -298,18 +350,24 @@ fun AddDialog(editOn: Boolean, scope: CoroutineScope, onDismiss: () -> Unit) {
     var site by remember { mutableStateOf("") }
     var allowance by remember { mutableIntStateOf(0) }
     val selected = remember { mutableStateListOf<String>() }
-    val apps by produceState(emptyList<Pair<String, String>>()) {
+    val apps by produceState(emptyList<Triple<String, String, ImageBitmap>>()) {
         value = withContext(Dispatchers.IO) {
             val pm = ctx.packageManager
             pm.queryIntentActivities(
                 Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
-            ).map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            ).map {
+                Triple(
+                    it.activityInfo.packageName,
+                    it.loadLabel(pm).toString(),
+                    it.loadIcon(pm).toImageBitmap(),
+                )
+            }
                 .distinctBy { it.first }
                 .filter { it.first != ctx.packageName }
                 .sortedBy { it.second.lowercase() }
         }
     }
-    val labels = remember(apps) { apps.toMap() }
+    val labels = remember(apps) { apps.associate { it.first to it.second } }
     val canAdd = if (dtab == 0) selected.isNotEmpty() else normalizeHost(site).contains(".")
 
     AlertDialog(
@@ -330,16 +388,18 @@ fun AddDialog(editOn: Boolean, scope: CoroutineScope, onDismiss: () -> Unit) {
                     )
                     LazyColumn(Modifier.height(240.dp)) {
                         items(apps.filter { query.isBlank() || it.second.contains(query, true) },
-                            key = { it.first }) { (pkg, label) ->
+                            key = { it.first }) { (pkg, label, icon) ->
                             Row(
                                 Modifier.fillMaxWidth()
+                                    .background(if (pkg in selected) MidGray else Bright)
                                     .clickable {
                                         if (pkg in selected) selected.remove(pkg) else selected.add(pkg)
                                     }
-                                    .padding(vertical = 2.dp),
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Checkbox(pkg in selected, null)
+                                Image(icon, null, Modifier.size(32.dp))
+                                Spacer(Modifier.width(12.dp))
                                 Text(label, color = Dark)
                             }
                         }
@@ -351,15 +411,7 @@ fun AddDialog(editOn: Boolean, scope: CoroutineScope, onDismiss: () -> Unit) {
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    "Daily allowance: " +
-                        if (allowance == 0) "0 min (fully blocked)" else "$allowance min",
-                    color = Dark,
-                )
-                Slider(
-                    allowance.toFloat(), { allowance = it.toInt() },
-                    valueRange = 0f..60f, steps = 59,
-                )
+                AllowanceSlider(allowance) { allowance = it }
             }
         },
         confirmButton = {
@@ -377,6 +429,15 @@ fun AddDialog(editOn: Boolean, scope: CoroutineScope, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+// ponytail: fixed 96px render, adaptive icons look fine at 32dp
+private fun Drawable.toImageBitmap(): ImageBitmap {
+    val b = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+    val c = Canvas(b)
+    setBounds(0, 0, c.width, c.height)
+    draw(c)
+    return b.asImageBitmap()
 }
 
 // ponytail: re-adding an existing item outside edit mode can only lower its
