@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Notification
@@ -214,17 +214,6 @@ class WatchdogService : Service() {
                 return
             }
             applyNoColor(this@WatchdogService)
-            if (DnsVpnService.running &&
-                DnsVpnService.fullBlock != (Engine.noInternet && Engine.enforcing())
-            ) {
-                try {
-                    startService(
-                        Intent(this@WatchdogService, DnsVpnService::class.java)
-                            .setAction("reconfig")
-                    )
-                } catch (_: Exception) {
-                }
-            }
             // edit mode idle timeout: app left while edit was on
             if (Engine.editOn && Engine.idleSince > 0 && System.currentTimeMillis() >
                 Engine.idleSince + (Engine.editTimeoutMin * 60_000).toLong()

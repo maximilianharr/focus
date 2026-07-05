@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
@@ -102,7 +102,6 @@ class Prefs(private val ctx: Context) {
         val ARM = longPreferencesKey("armStart")
         val SHUTDOWN = booleanPreferencesKey("shutdown")
         val NO_COLOR = booleanPreferencesKey("noColor")
-        val NO_INTERNET = booleanPreferencesKey("noInternet")
     }
 
     val flow get() = ctx.store.data
@@ -136,7 +135,6 @@ object Engine {
     @Volatile var editTimeoutMin = 5f
     @Volatile var idleSince = 0L
     @Volatile var noColor = false
-    @Volatile var noInternet = false
     @Volatile var noColorApplied = false // we wrote the daltonizer setting
 
     fun applyPrefs(p: Preferences) {
@@ -148,7 +146,6 @@ object Engine {
         editTimeoutMin = p[Prefs.EDIT_TIMEOUT] ?: 5f
         idleSince = p[Prefs.IDLE] ?: 0L
         noColor = p[Prefs.NO_COLOR] ?: false
-        noInternet = p[Prefs.NO_INTERNET] ?: false
     }
 
     fun today(): String = LocalDate.now().toString()
@@ -226,7 +223,6 @@ fun exportJson(prefs: Preferences?): String {
     o.put("confirmMin", (prefs?.get(Prefs.CONFIRM) ?: 1f).toDouble())
     o.put("editTimeoutMin", (prefs?.get(Prefs.EDIT_TIMEOUT) ?: 5f).toDouble())
     o.put("noColor", prefs?.get(Prefs.NO_COLOR) ?: false)
-    o.put("noInternet", prefs?.get(Prefs.NO_INTERNET) ?: false)
     return o.toString(2)
 }
 
@@ -251,6 +247,5 @@ suspend fun importJson(text: String, dao: FocusDao, prefs: Prefs) {
         it[Prefs.CONFIRM] = o.optDouble("confirmMin", 1.0).toFloat()
         it[Prefs.EDIT_TIMEOUT] = o.optDouble("editTimeoutMin", 5.0).toFloat()
         it[Prefs.NO_COLOR] = o.optBoolean("noColor", false)
-        it[Prefs.NO_INTERNET] = o.optBoolean("noInternet", false)
     }
 }

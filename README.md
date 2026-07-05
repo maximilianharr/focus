@@ -1,4 +1,4 @@
-# focus2
+# focus
 
 An Android app & website blocker that makes it hard to cheat on yourself.
 
@@ -23,14 +23,14 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 Then grant permissions in-app via **Settings → Permissions**, or in one shot via adb:
 
 ```sh
-adb shell pm grant com.max.focus2 android.permission.POST_NOTIFICATIONS
+adb shell pm grant com.max.focus android.permission.POST_NOTIFICATIONS
 # optional, powers the "No color" grayscale toggle
-adb shell pm grant com.max.focus2 android.permission.WRITE_SECURE_SETTINGS
-adb shell appops set com.max.focus2 SYSTEM_ALERT_WINDOW allow
-adb shell appops set com.max.focus2 ACTIVATE_VPN allow
-adb shell dpm set-active-admin com.max.focus2/.AdminReceiver
+adb shell pm grant com.max.focus android.permission.WRITE_SECURE_SETTINGS
+adb shell appops set com.max.focus SYSTEM_ALERT_WINDOW allow
+adb shell appops set com.max.focus ACTIVATE_VPN allow
+adb shell dpm set-active-admin com.max.focus/.AdminReceiver
 # overwrites the accessibility list - append instead if you use other accessibility services
-adb shell settings put secure enabled_accessibility_services com.max.focus2/com.max.focus2.BlockerService
+adb shell settings put secure enabled_accessibility_services com.max.focus/com.max.focus.BlockerService
 adb shell settings put secure accessibility_enabled 1
 ```
 
@@ -39,6 +39,6 @@ adb shell settings put secure accessibility_enabled 1
 Device Admin blocks normal uninstall (that's the point). Over USB:
 
 ```sh
-adb shell dpm remove-active-admin com.max.focus2/.AdminReceiver
-adb uninstall com.max.focus2
+adb shell dpm remove-active-admin com.max.focus/.AdminReceiver
+adb uninstall com.max.focus
 ```

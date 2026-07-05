@@ -58,7 +58,7 @@ Settings
 - If the cooldown timer is above 30 minutes or the confirm window is below 1 minute the user is asked if he is sure to set these values
 - By default cooldown timer is 0.1 minutes and confirm window is 1 minute to give the user the option to test the app
 - The timers can only be set in edit mode
-- Below the timer button are two toggles "no color" and "no internet" in one row. "no color" toggle forces color correction and "no internet" toggle disables wlan and mobile data during the focus time. These can always be turned on, but only turned off during active edit mode.
+- Below the timer button is a "no color" toggle that forces color correction. It can always be turned on, but only turned off during active edit mode.
 - Below this is a permissions button that opens a status screen showing whether Accessibility Service, VPN, Device Admin and notification permissions are granted, each with a button to jump to the relevant Android settings screen to fix it. This is also where the app routes the user if it detects a required permission was revoked.
 - Below this is Backup section with two buttons "Export" and "Import" in one row that allow the user to save/load his settings into a .json file (via the standard Android file picker). Export is always possibe. Import only when in edit mode, and overwrites all current settings.
 - Below this is a shutdown button to shutdown the app. Only possible to click in edit mode. Shutdown fully stops the blocking (Accessibility Service, VPN, watchdog) and closes the app; blocking stays off until the phone reboots or the app is reopened manually. When restarting the phone the app is launched again.

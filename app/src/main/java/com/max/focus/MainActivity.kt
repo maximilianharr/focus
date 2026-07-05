@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import android.app.NotificationManager
 import android.app.admin.DevicePolicyManager
@@ -603,20 +603,10 @@ fun SettingsTab(
         SettingsButton("Permissions", btnMod) { MainActivity.openPerms.value = true }
 
         val noColor = prefs?.get(Prefs.NO_COLOR) ?: false
-        val noInternet = prefs?.get(Prefs.NO_INTERNET) ?: false
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ToggleChip("No color", noColor, editOn, Modifier.weight(1f)) { on ->
-                Engine.noColor = on // apply now, don't wait for the flow
-                applyNoColor(ctx)
-                scope.launch { App.prefs.edit { it[Prefs.NO_COLOR] = on } }
-            }
-            ToggleChip("No internet", noInternet, editOn, Modifier.weight(1f)) { on ->
-                Engine.noInternet = on
-                scope.launch { App.prefs.edit { it[Prefs.NO_INTERNET] = on } }
-                if (DnsVpnService.running) activity.startService(
-                    Intent(activity, DnsVpnService::class.java).setAction("reconfig")
-                )
-            }
+        ToggleChip("No color", noColor, editOn, btnMod) { on ->
+            Engine.noColor = on // apply now, don't wait for the flow
+            applyNoColor(ctx)
+            scope.launch { App.prefs.edit { it[Prefs.NO_COLOR] = on } }
         }
         if (noColor && ctx.checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") !=
             android.content.pm.PackageManager.PERMISSION_GRANTED

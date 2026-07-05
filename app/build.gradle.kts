@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.max.focus2"
+    namespace = "com.max.focus"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.max.focus2"
+        applicationId = "com.max.focus"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

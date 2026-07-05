@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import android.app.Application
 import androidx.room.Room

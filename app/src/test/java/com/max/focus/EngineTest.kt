@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

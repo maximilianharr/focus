@@ -1,4 +1,4 @@
-package com.max.focus2
+package com.max.focus
 
 import android.content.Intent
 import android.net.VpnService
@@ -28,7 +28,6 @@ private const val UPSTREAM_DNS = "8.8.8.8"
 class DnsVpnService : VpnService() {
     companion object {
         @Volatile var running = false
-        @Volatile var fullBlock = false // "no internet": tun eats all traffic
     }
 
     private var tun: ParcelFileDescriptor? = null
@@ -39,11 +38,6 @@ class DnsVpnService : VpnService() {
             shutdownVpn()
             stopSelf()
             return START_NOT_STICKY
-        }
-        if (intent?.action == "reconfig") { // routes changed (no-internet toggle)
-            if (running) shutdownVpn()
-            startVpn()
-            return START_STICKY
         }
         if (!running) startVpn()
         return START_STICKY
@@ -60,30 +54,18 @@ class DnsVpnService : VpnService() {
     }
 
     private fun startVpn() {
-        // ponytail: "disable wlan/mobile data" isn't possible without system
-        // privileges; routing everything into the tun and dropping it is the
-        // same outcome for apps. Calls/SMS keep working.
-        val full = Engine.noInternet && Engine.enforcing()
         val b = Builder()
             .setSession("Focus")
             .addAddress("10.111.0.1", 24)
             .addDnsServer("10.111.0.53")
             .addRoute("10.111.0.53", 32)
-        if (full) {
-            b.addRoute("0.0.0.0", 0)
-            try {
-                b.addAddress("fd00:f0c5::1", 64)
-                b.addRoute("::", 0)
-            } catch (_: Exception) {
-            }
-        } else DOH_IPS.forEach { b.addRoute(it, 32) }
+        DOH_IPS.forEach { b.addRoute(it, 32) }
         try {
             b.addDisallowedApplication(packageName)
         } catch (_: Exception) {
         }
         b.setBlocking(true)
         tun = b.establish() ?: return
-        fullBlock = full
         running = true
         Thread({ loop() }, "focus-dns").apply { isDaemon = true }.start()
     }
@@ -127,11 +109,6 @@ class DnsVpnService : VpnService() {
         if (dstPort != 53) return
         val dns = pkt.copyOfRange(ihl + 8, pkt.size)
         val host = parseQName(dns) ?: return
-        // no-internet mode: answer NXDOMAIN so apps fail fast instead of hanging
-        if (fullBlock && Engine.enforcing()) {
-            synchronized(out) { out.write(nxdomain(pkt, ihl)) }
-            return
-        }
         when (Engine.siteVerdict(host, System.currentTimeMillis())) {
             VERDICT_BLOCK -> synchronized(out) { out.write(nxdomain(pkt, ihl)) }
             VERDICT_START -> {
