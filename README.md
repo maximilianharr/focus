@@ -24,6 +24,8 @@ Then grant permissions in-app via **Settings → Permissions**, or in one shot v
 
 ```sh
 adb shell pm grant com.max.focus2 android.permission.POST_NOTIFICATIONS
+# optional, powers the "No color" grayscale toggle
+adb shell pm grant com.max.focus2 android.permission.WRITE_SECURE_SETTINGS
 adb shell appops set com.max.focus2 SYSTEM_ALERT_WINDOW allow
 adb shell appops set com.max.focus2 ACTIVATE_VPN allow
 adb shell dpm set-active-admin com.max.focus2/.AdminReceiver
