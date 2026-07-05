@@ -23,6 +23,7 @@ Block List
 - Below the app slider is a "cancel" and a "Add" button
 - An app or website block can always be added, even if "edit mode" (see settings) is off
 - Removing an existing blocked app/website requires edit mode (unlike adding, which is always allowed)
+- To remove an app add a "trash can" icon on the right of the app block to indicate "clickability" make it dark if edit mode is on and bright if off.
 - In the block List tab when clicking on an existing app/website block a popup shall open where the user can adapt the daily allowance
 
 Schedule
@@ -36,7 +37,7 @@ Schedule
 - By default when adding a timer window in Schedule tab activate the current day to make it visible to the user that these have different colors and can be activated
 - On top right of the item is a delete button to remove a time window
 - A time window is a time window to cheat not to focus, during that time the user can use the apps/websites
-- A time window can only be added if in Edit mode (see "edit mode" in settings)
+- A time window can only be added if in Edit mode (see "edit mode" in settings). To indicate "clickability" make it dark if edit mode is on and bright if off.
 - Toggling weekday letters, changing start/end time, and deleting an existing time window also require edit mode - only viewing is free (since an active window disables blocking, it must go through the same cooldown ritual as other loosening changes)
 - Overnight windows (crossing midnight) and multiple overlapping windows are supported; any currently-active window disables blocking
 
@@ -63,11 +64,12 @@ Top bar
 - At the top are two bars in two rows "Focus: ON/OFF" and "Edit: ON/OFF" to indicate whether focus or edit mode are activated
 - An activated focus/edit mode is indicate by a darker color
 - "Edit: ON/OFF" reflects edit mode. "Focus: ON/OFF" reflects real-time enforcement status: ON while actively enforcing, OFF while shut down or while a Schedule cheat window is currently active
-- The topmost bar shall be right below the phones status bar to make sure the user can still read battery life, networks, etc
+- The topmost bar shall be right below the phones status bar to make sure the user can still read battery life, networks, etc.
+- The topmost bar uses the apps dark color as background color.
+
 Design
 - Keep the app in two colors, vary dark and very bright modern grayish color
 - Give the app a nice, modern looking design while keeping it simple, tidy, lean and clean.
-
 
 ## BEHAVIOUR
 - The app shall not throw interruptive notifications (popups/heads-up alerts), because they distract the user. A silent, permanent, low-priority status icon (foreground service) and the OS-mandated VPN icon are unavoidable and accepted.
