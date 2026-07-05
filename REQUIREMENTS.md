@@ -14,14 +14,16 @@ Block List
 - The popup title is "Add a block" and has two tabs "App" and "Website"
 - When clicking "App" then the user can search the apps, limited to launchable user apps (apps with a home-screen/launcher icon), not all installed packages or system components
 - The user can select multiple apps to add from that list
+- When adding an app in the "Add a block" popup show the app icons on the left of the row and then the name. Mark a selected app by make the background darker.
 - When clicking the "Website" tab a text field can be set with the website, e.g. like tiktok.com; input is normalized (strip scheme/www, lowercase) before storing
-- At the bottom of the tab is a "Daily allowance" slider that the user can set from 0 (default) to 60 minutes, which marks the time an app/website is allowed to run
+- At the bottom of the tab is a "Daily allowance" slider that the user can set from 0 (default) to 120 minutes in 5 minute steps, which marks the time an app/website is allowed to run
   - 0 = fully blocked all day (no usage at all) unless a Schedule "cheat window" is currently active
   - Above 0 = that many cumulative minutes per day allowed before it locks for the rest of the day
   - The allowance resets at local midnight
 - Below the app slider is a "cancel" and a "Add" button
 - An app or website block can always be added, even if "edit mode" (see settings) is off
 - Removing an existing blocked app/website requires edit mode (unlike adding, which is always allowed)
+- In the block List tab when clicking on an existing app/website block a popup shall open where the user can adapt the daily allowance
 
 Schedule
 - At the bottom of the schedule tab is a "+" sign to add a time window
@@ -31,6 +33,7 @@ Schedule
 - A time window has a start and end time. When clicking on a time a clock popup opens where the user can set the respective time
 - An time window has the weekday first letters "MTWTFSS" on top left on which the time window is active
 - these letters can be clicked to active the schedule, the respective letter then gets a darker color to indicate activation
+- By default when adding a timer window in Schedule tab activate the current day to make it visible to the user that these have different colors and can be activated
 - On top right of the item is a delete button to remove a time window
 - A time window is a time window to cheat not to focus, during that time the user can use the apps/websites
 - A time window can only be added if in Edit mode (see "edit mode" in settings)
@@ -60,7 +63,7 @@ Top bar
 - At the top are two bars in two rows "Focus: ON/OFF" and "Edit: ON/OFF" to indicate whether focus or edit mode are activated
 - An activated focus/edit mode is indicate by a darker color
 - "Edit: ON/OFF" reflects edit mode. "Focus: ON/OFF" reflects real-time enforcement status: ON while actively enforcing, OFF while shut down or while a Schedule cheat window is currently active
-
+- The topmost bar shall be right below the phones status bar to make sure the user can still read battery life, networks, etc
 Design
 - Keep the app in two colors, vary dark and very bright modern grayish color
 - Give the app a nice, modern looking design while keeping it simple, tidy, lean and clean.
