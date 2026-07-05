@@ -86,6 +86,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,6 +116,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // status bar sits on the Dark top bar -> use light icons
+        WindowCompat.getInsetsController(window, window.decorView)
+            .isAppearanceLightStatusBars = false
         if (intent?.getBooleanExtra("perm", false) == true) openPerms.value = true
         setContent {
             MaterialTheme(
@@ -196,7 +200,7 @@ fun Main(activity: MainActivity) {
     Scaffold(
         containerColor = Bright,
         topBar = {
-            Column(Modifier.statusBarsPadding()) {
+            Column(Modifier.background(Dark).statusBarsPadding()) {
                 StatusRow("Focus", focusOn)
                 StatusRow("Edit", editOn)
             }
@@ -212,12 +216,14 @@ fun Main(activity: MainActivity) {
             }
         },
         floatingActionButton = {
-            if (!showPerms && (tab == 0 || (tab == 1 && editOn))) {
+            if (!showPerms && tab < 2) {
+                val active = tab == 0 || editOn
                 FloatingActionButton(
-                    containerColor = Dark, contentColor = Bright,
+                    containerColor = if (active) Dark else MidGray,
+                    contentColor = if (active) Bright else DimDark,
                     onClick = {
                         if (tab == 0) showAdd = true
-                        else scope.launch(Dispatchers.IO) {
+                        else if (editOn) scope.launch(Dispatchers.IO) {
                             val today = 1 shl (LocalDate.now().dayOfWeek.value - 1)
                             App.dao.insertWindow(CheatWindow(0, 12 * 60, 13 * 60, today))
                         }
@@ -336,9 +342,10 @@ fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope, onClick: (
             if (item.allowance == 0) "blocked" else "${item.allowance} min/day",
             style = MaterialTheme.typography.bodySmall, color = DimDark,
         )
-        if (editOn) IconButton({
-            scope.launch(Dispatchers.IO) { App.dao.deleteItem(item.value) }
-        }) { Icon(Icons.Default.Delete, "Delete", tint = Dark) }
+        IconButton(
+            onClick = { scope.launch(Dispatchers.IO) { App.dao.deleteItem(item.value) } },
+            enabled = editOn,
+        ) { Icon(Icons.Default.Delete, "Delete", tint = if (editOn) Dark else MidGray) }
     }
 }
 
