@@ -58,6 +58,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -140,7 +142,18 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         visible = true
-        lifecycleScope.launch { App.prefs.edit { it[Prefs.SHUTDOWN] = false } }
+        lifecycleScope.launch {
+            App.prefs.edit {
+                it[Prefs.SHUTDOWN] = false
+                // edit mode idle timeout: expired while away -> revoke,
+                // otherwise reopening resets the timer
+                val idle = it[Prefs.IDLE] ?: 0L
+                val timeoutMs = ((it[Prefs.EDIT_TIMEOUT] ?: 5f) * 60_000).toLong()
+                if (idle > 0 && System.currentTimeMillis() > idle + timeoutMs)
+                    it[Prefs.EDIT] = false
+                it[Prefs.IDLE] = 0L
+            }
+        }
         try {
             startForegroundService(Intent(this, WatchdogService::class.java))
         } catch (_: Exception) {
@@ -150,6 +163,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         visible = false
+        lifecycleScope.launch {
+            App.prefs.edit { if (it[Prefs.EDIT] == true) it[Prefs.IDLE] = System.currentTimeMillis() }
+        }
         super.onPause()
     }
 
@@ -235,7 +251,7 @@ fun Main(activity: MainActivity) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             when {
                 showPerms -> PermissionsScreen(activity, now) { showPerms = false }
-                tab == 0 -> BlockListTab(items, editOn, scope)
+                tab == 0 -> BlockListTab(items, editOn, scope, now)
                 tab == 1 -> ScheduleTab(windows, editOn, scope)
                 else -> SettingsTab(activity, prefs, now, scope)
             }
@@ -260,18 +276,18 @@ fun StatusRow(label: String, on: Boolean) {
 }
 
 @Composable
-fun BlockListTab(items: List<BlockItem>, editOn: Boolean, scope: CoroutineScope) {
+fun BlockListTab(items: List<BlockItem>, editOn: Boolean, scope: CoroutineScope, now: Long) {
     val apps = items.filter { it.type == TYPE_APP }
     val sites = items.filter { it.type == TYPE_SITE }
     var editing by remember { mutableStateOf<BlockItem?>(null) }
     LazyColumn(Modifier.fillMaxSize()) {
         item { SectionHeader("Apps") }
         if (apps.isEmpty()) item { EmptyHint("No blocked apps") }
-        items(apps, key = { it.value }) { BlockRow(it, editOn, scope) { editing = it } }
+        items(apps, key = { it.value }) { BlockRow(it, editOn, scope, now) { editing = it } }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp), color = DimDark) }
         item { SectionHeader("Websites") }
         if (sites.isEmpty()) item { EmptyHint("No blocked websites") }
-        items(sites, key = { it.value }) { BlockRow(it, editOn, scope) { editing = it } }
+        items(sites, key = { it.value }) { BlockRow(it, editOn, scope, now) { editing = it } }
         item { Spacer(Modifier.height(80.dp)) }
     }
     editing?.let { AllowanceDialog(it, editOn, scope) { editing = null } }
@@ -327,7 +343,7 @@ fun EmptyHint(t: String) =
     Text(t, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = DimDark)
 
 @Composable
-fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope, onClick: () -> Unit) {
+fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope, now: Long, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -339,7 +355,8 @@ fun BlockRow(item: BlockItem, editOn: Boolean, scope: CoroutineScope, onClick: (
                 Text(item.value, style = MaterialTheme.typography.bodySmall, color = DimDark)
         }
         Text(
-            if (item.allowance == 0) "blocked" else "${item.allowance} min/day",
+            if (item.allowance == 0) "blocked"
+            else "${Engine.remainingMin(item, now)}/${item.allowance} min",
             style = MaterialTheme.typography.bodySmall, color = DimDark,
         )
         IconButton(
@@ -585,6 +602,30 @@ fun SettingsTab(
         SettingsButton("Set timers", btnMod, enabled = editOn) { showTimers = true }
         SettingsButton("Permissions", btnMod) { MainActivity.openPerms.value = true }
 
+        val noColor = prefs?.get(Prefs.NO_COLOR) ?: false
+        val noInternet = prefs?.get(Prefs.NO_INTERNET) ?: false
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ToggleChip("No color", noColor, editOn, Modifier.weight(1f)) { on ->
+                Engine.noColor = on // apply now, don't wait for the flow
+                applyNoColor(ctx)
+                scope.launch { App.prefs.edit { it[Prefs.NO_COLOR] = on } }
+            }
+            ToggleChip("No internet", noInternet, editOn, Modifier.weight(1f)) { on ->
+                Engine.noInternet = on
+                scope.launch { App.prefs.edit { it[Prefs.NO_INTERNET] = on } }
+                if (DnsVpnService.running) activity.startService(
+                    Intent(activity, DnsVpnService::class.java).setAction("reconfig")
+                )
+            }
+        }
+        if (noColor && ctx.checkSelfPermission("android.permission.WRITE_SECURE_SETTINGS") !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) Text(
+            "No color needs: adb shell pm grant ${ctx.packageName} " +
+                "android.permission.WRITE_SECURE_SETTINGS",
+            style = MaterialTheme.typography.bodySmall, color = DimDark,
+        )
+
         SectionHeader("Backup")
         BackupRow(activity, prefs, editOn, scope)
 
@@ -602,6 +643,31 @@ fun SettingsTab(
     }
 
     if (showTimers) TimersDialog(prefs, scope) { showTimers = false }
+}
+
+// Always switchable on; switching off needs edit mode.
+@Composable
+fun ToggleChip(
+    label: String,
+    checked: Boolean,
+    editOn: Boolean,
+    modifier: Modifier = Modifier,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier.background(MidGray, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f), color = Dark, fontWeight = FontWeight.Medium)
+        Switch(
+            checked, onChange, enabled = !checked || editOn,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = Dark, checkedThumbColor = Bright,
+                disabledCheckedTrackColor = DimDark, disabledCheckedThumbColor = MidGray,
+            ),
+        )
+    }
 }
 
 @Composable
@@ -673,16 +739,19 @@ fun TimersDialog(
 ) {
     var cd by remember { mutableStateOf((prefs?.get(Prefs.COOLDOWN) ?: 0.1f).toString()) }
     var cf by remember { mutableStateOf((prefs?.get(Prefs.CONFIRM) ?: 1f).toString()) }
+    var et by remember { mutableStateOf((prefs?.get(Prefs.EDIT_TIMEOUT) ?: 5f).toString()) }
     var confirmOdd by remember { mutableStateOf(false) }
 
     fun parse(s: String) = s.trim().replace(',', '.').toFloatOrNull()
     fun save() {
         val c = parse(cd) ?: return
         val f = parse(cf) ?: return
+        val t = parse(et) ?: return
         scope.launch {
             App.prefs.edit {
                 it[Prefs.COOLDOWN] = "%.1f".format(c.coerceIn(0f, 999f)).toFloat()
                 it[Prefs.CONFIRM] = "%.1f".format(f.coerceIn(0.1f, 999f)).toFloat()
+                it[Prefs.EDIT_TIMEOUT] = "%.1f".format(t.coerceIn(0.1f, 999f)).toFloat()
             }
         }
         onDismiss()
@@ -713,7 +782,9 @@ fun TimersDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(cd, { cd = it }, label = { Text("Cooldown (minutes)") }, singleLine = true)
                 OutlinedTextField(cf, { cf = it }, label = { Text("Confirm window (minutes)") }, singleLine = true)
-                Text("One decimal allowed, e.g. 0.1 = 6 seconds.",
+                OutlinedTextField(et, { et = it }, label = { Text("Edit mode time (minutes)") }, singleLine = true)
+                Text("One decimal allowed, e.g. 0.1 = 6 seconds. Edit mode time: " +
+                    "how long edit mode survives while the app is not open.",
                     style = MaterialTheme.typography.bodySmall, color = DimDark)
             }
         },
@@ -721,7 +792,7 @@ fun TimersDialog(
             TextButton(onClick = {
                 val c = parse(cd)
                 val f = parse(cf)
-                if (c == null || f == null) return@TextButton
+                if (c == null || f == null || parse(et) == null) return@TextButton
                 if (c > 30f || f < 1f) confirmOdd = true else save()
             }) { Text("Save") }
         },

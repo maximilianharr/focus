@@ -65,6 +65,23 @@ class EngineTest {
     }
 
     @Test
+    fun remainingMinutes() {
+        val today = Engine.today()
+        val app = BlockItem("a", TYPE_APP, "a", 15)
+        Engine.usage = mapOf("a|$today" to Usage("a", today, 90)) // 1.5 min used
+        assertEquals(14, Engine.remainingMin(app, 0)) // rounds up
+        Engine.usage = mapOf("a|$today" to Usage("a", today, 2000)) // overused
+        assertEquals(0, Engine.remainingMin(app, 0))
+
+        val site = BlockItem("x.com", TYPE_SITE, "x.com", 10)
+        Engine.usage = emptyMap()
+        assertEquals(10, Engine.remainingMin(site, 123L)) // clock not started
+        Engine.usage = mapOf("x.com|$today" to Usage("x.com", today, 0, 1000L))
+        assertEquals(7, Engine.remainingMin(site, 1000L + 3 * 60_000))
+        Engine.usage = emptyMap()
+    }
+
+    @Test
     fun normalizesHosts() {
         assertEquals("tiktok.com", normalizeHost(" https://www.TikTok.com/foo?x=1 "))
         assertEquals("tiktok.com", normalizeHost("tiktok.com"))

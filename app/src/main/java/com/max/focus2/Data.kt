@@ -96,9 +96,13 @@ class Prefs(private val ctx: Context) {
     companion object {
         val COOLDOWN = floatPreferencesKey("cooldownMin")
         val CONFIRM = floatPreferencesKey("confirmMin")
+        val EDIT_TIMEOUT = floatPreferencesKey("editTimeoutMin")
+        val IDLE = longPreferencesKey("editIdleSince") // 0 = app in use
         val EDIT = booleanPreferencesKey("editOn")
         val ARM = longPreferencesKey("armStart")
         val SHUTDOWN = booleanPreferencesKey("shutdown")
+        val NO_COLOR = booleanPreferencesKey("noColor")
+        val NO_INTERNET = booleanPreferencesKey("noInternet")
     }
 
     val flow get() = ctx.store.data
@@ -129,6 +133,11 @@ object Engine {
     @Volatile var armStart = 0L
     @Volatile var cooldownMin = 0.1f
     @Volatile var confirmMin = 1f
+    @Volatile var editTimeoutMin = 5f
+    @Volatile var idleSince = 0L
+    @Volatile var noColor = false
+    @Volatile var noInternet = false
+    @Volatile var noColorApplied = false // we wrote the daltonizer setting
 
     fun applyPrefs(p: Preferences) {
         shutdown = p[Prefs.SHUTDOWN] ?: false
@@ -136,6 +145,10 @@ object Engine {
         armStart = p[Prefs.ARM] ?: 0L
         cooldownMin = p[Prefs.COOLDOWN] ?: 0.1f
         confirmMin = p[Prefs.CONFIRM] ?: 1f
+        editTimeoutMin = p[Prefs.EDIT_TIMEOUT] ?: 5f
+        idleSince = p[Prefs.IDLE] ?: 0L
+        noColor = p[Prefs.NO_COLOR] ?: false
+        noInternet = p[Prefs.NO_INTERNET] ?: false
     }
 
     fun today(): String = LocalDate.now().toString()
@@ -161,6 +174,19 @@ object Engine {
     fun appItem(pkg: String) = items.find { it.type == TYPE_APP && it.value == pkg }
 
     fun usedSeconds(v: String) = usage["$v|${today()}"]?.seconds ?: 0
+
+    // Minutes left today, rounded up. Apps count foreground seconds,
+    // websites count wall-clock from the first DNS hit.
+    fun remainingMin(item: BlockItem, now: Long): Int {
+        val secLeft = if (item.type == TYPE_APP) {
+            item.allowance * 60 - usedSeconds(item.value)
+        } else {
+            val u = usage["${item.value}|${today()}"]
+            if (u == null || u.firstSeen == 0L) item.allowance * 60
+            else ((u.firstSeen + item.allowance * 60_000L - now) / 1000).toInt()
+        }
+        return (secLeft.coerceAtLeast(0) + 59) / 60
+    }
 
     fun appBlockReason(item: BlockItem): String? {
         if (!enforcing()) return null
@@ -198,6 +224,9 @@ fun exportJson(prefs: Preferences?): String {
     }))
     o.put("cooldownMin", (prefs?.get(Prefs.COOLDOWN) ?: 0.1f).toDouble())
     o.put("confirmMin", (prefs?.get(Prefs.CONFIRM) ?: 1f).toDouble())
+    o.put("editTimeoutMin", (prefs?.get(Prefs.EDIT_TIMEOUT) ?: 5f).toDouble())
+    o.put("noColor", prefs?.get(Prefs.NO_COLOR) ?: false)
+    o.put("noInternet", prefs?.get(Prefs.NO_INTERNET) ?: false)
     return o.toString(2)
 }
 
@@ -220,5 +249,8 @@ suspend fun importJson(text: String, dao: FocusDao, prefs: Prefs) {
     prefs.edit {
         it[Prefs.COOLDOWN] = o.optDouble("cooldownMin", 0.1).toFloat()
         it[Prefs.CONFIRM] = o.optDouble("confirmMin", 1.0).toFloat()
+        it[Prefs.EDIT_TIMEOUT] = o.optDouble("editTimeoutMin", 5.0).toFloat()
+        it[Prefs.NO_COLOR] = o.optBoolean("noColor", false)
+        it[Prefs.NO_INTERNET] = o.optBoolean("noInternet", false)
     }
 }

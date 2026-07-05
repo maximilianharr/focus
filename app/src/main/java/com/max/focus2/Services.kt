@@ -32,6 +32,26 @@ import java.util.concurrent.Executors
 private const val DARK = 0xFF23262B.toInt()
 private const val BRIGHT = 0xFFF4F5F7.toInt()
 
+// "No color": force grayscale via the accessibility daltonizer. Needs
+// WRITE_SECURE_SETTINGS (adb-grantable). Only undoes what it set itself, so a
+// user's own color-correction setup is left alone.
+fun applyNoColor(ctx: Context) {
+    val want = Engine.noColor && Engine.enforcing()
+    val cr = ctx.contentResolver
+    try {
+        val on = Settings.Secure.getInt(cr, "accessibility_display_daltonizer_enabled", 0) == 1
+        if (want && !on) {
+            Settings.Secure.putInt(cr, "accessibility_display_daltonizer", 0) // monochromacy
+            Settings.Secure.putInt(cr, "accessibility_display_daltonizer_enabled", 1)
+            Engine.noColorApplied = true
+        } else if (!want && on && Engine.noColorApplied) {
+            Settings.Secure.putInt(cr, "accessibility_display_daltonizer_enabled", 0)
+            Engine.noColorApplied = false
+        }
+    } catch (_: Exception) {
+    }
+}
+
 private fun blockScreen(
     ctx: Context, title: String, body: String, detail: String,
     buttonText: String, onButton: () -> Unit,
@@ -188,9 +208,32 @@ class WatchdogService : Service() {
     private val check = object : Runnable {
         override fun run() {
             if (Engine.shutdown) {
+                applyNoColor(this@WatchdogService)
                 hideLock()
                 stopSelf()
                 return
+            }
+            applyNoColor(this@WatchdogService)
+            if (DnsVpnService.running &&
+                DnsVpnService.fullBlock != (Engine.noInternet && Engine.enforcing())
+            ) {
+                try {
+                    startService(
+                        Intent(this@WatchdogService, DnsVpnService::class.java)
+                            .setAction("reconfig")
+                    )
+                } catch (_: Exception) {
+                }
+            }
+            // edit mode idle timeout: app left while edit was on
+            if (Engine.editOn && Engine.idleSince > 0 && System.currentTimeMillis() >
+                Engine.idleSince + (Engine.editTimeoutMin * 60_000).toLong()
+            ) {
+                Thread {
+                    kotlinx.coroutines.runBlocking {
+                        App.prefs.edit { it[Prefs.EDIT] = false; it[Prefs.IDLE] = 0L }
+                    }
+                }.start()
             }
             if (VpnService.prepare(this@WatchdogService) == null && !DnsVpnService.running) {
                 try {
