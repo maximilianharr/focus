@@ -28,6 +28,7 @@ Block List
 - In the block List tab when clicking on an existing app/website block a popup shall open where the user can adapt the daily allowance
 
 Schedule
+- At the top of the schedule tab is a description "Toxic Time! During these time windows the app and website blocks will be off!"
 - At the bottom of the schedule tab is a "+" sign to add a time window
 - Multiple time windos can be added
 - By default no time window is present
@@ -44,14 +45,14 @@ Schedule
 
 Settings
 - Settings tab has multiple buttons in the following order
-- Edit mode with button "Turn On"/"Turn Off" enteres edit mode.
+- Edit mode with button "Turn Edit Mode On"/"Turn Edit Mode Off" enteres edit mode.
 - in edit mode all settings can be changed
 - To enter edit mode the user has to wait for "cooldown" countdown
 - The cooldown countdown is diplayed on the edit mode button if the user clicks it (state "Turn On")
 - After the cooldown countdown a confirm countdown is displayed during which the button oscillated from dark/bright color at 1 Hz
-- If the user missed the cooldown timer then the edit mode will not be turned on. The botton goes back to "Turn On" state.
+- If the user missed the cooldown timer then the edit mode will not be turned on. The botton goes back to "Turn Edit Mode On" state.
 - There is also an "edit mode" timer. The "edit mode" timer is a time window to keep edit mode alive if the app is not used. It will be revoked after this time. The "edit mode time" is not used while the user uses the app and is reset if the user re-opens the app before the timer is zero.
-- The cooldown/confirm/edit mode countdowns keep running even if the app is backgrounded or the screen is locked; missing the confirm window still lapses back to "Turn On"
+- The cooldown/confirm/edit mode countdowns keep running even if the app is backgrounded or the screen is locked; missing the confirm window still lapses back to "Turn Edit Mode On"
 - Below the edit mode is a "Set timers" which opens a popup in which the user can set the cooldown, confirm and edit mode timers in minutes.
 - One decimal point is allowed for the timers (e.g. 0.1 for 6 seconds)
 - The timer popup has a "cancel" and "save" button
@@ -59,7 +60,7 @@ Settings
 - By default cooldown timer is 0.1 minutes and confirm window is 1 minute to give the user the option to test the app
 - The timers can only be set in edit mode
 - Below the timer button is a "no color" toggle that forces color correction. It can always be turned on, but only turned off during active edit mode.
-- Below this is a permissions button that opens a status screen showing whether Accessibility Service, VPN, Device Admin and notification permissions are granted, each with a button to jump to the relevant Android settings screen to fix it. This is also where the app routes the user if it detects a required permission was revoked.
+- Below the "no color" toggle is a permissions button that opens a status screen showing whether Accessibility Service, VPN, Device Admin and notification permissions are granted, each with a button to jump to the relevant Android settings screen to fix it. This is also where the app routes the user if it detects a required permission was revoked.
 - Below this is Backup section with two buttons "Export" and "Import" in one row that allow the user to save/load his settings into a .json file (via the standard Android file picker). Export is always possibe. Import only when in edit mode, and overwrites all current settings.
 - Below this is a shutdown button to shutdown the app. Only possible to click in edit mode. Shutdown fully stops the blocking (Accessibility Service, VPN, watchdog) and closes the app; blocking stays off until the phone reboots or the app is reopened manually. When restarting the phone the app is launched again.
 
