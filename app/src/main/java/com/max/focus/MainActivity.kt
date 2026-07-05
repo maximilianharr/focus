@@ -479,6 +479,13 @@ private fun addBlock(new: BlockItem, editOn: Boolean) {
 fun ScheduleTab(windows: List<CheatWindow>, editOn: Boolean, scope: CoroutineScope) {
     var picking by remember { mutableStateOf<Pair<CheatWindow, Boolean>?>(null) } // window, isStart
     LazyColumn(Modifier.fillMaxSize()) {
+        item {
+            Text(
+                "Toxic Time! During these time windows the app and website blocks will be off!",
+                Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodySmall, color = DimDark,
+            )
+        }
         if (windows.isEmpty()) item {
             EmptyHint(
                 if (editOn) "No time windows. Tap + to add a cheat window."
@@ -580,10 +587,10 @@ fun SettingsTab(
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val btnMod = Modifier.fillMaxWidth()
         when {
-            editOn -> SettingsButton("Turn Off", btnMod, container = Dark) {
+            editOn -> SettingsButton("Turn Edit Mode Off", btnMod, container = Dark) {
                 scope.launch { App.prefs.edit { it[Prefs.EDIT] = false; it[Prefs.ARM] = 0L } }
             }
-            arm == 0L -> SettingsButton("Turn On", btnMod) {
+            arm == 0L -> SettingsButton("Turn Edit Mode On", btnMod) {
                 scope.launch { App.prefs.edit { it[Prefs.ARM] = System.currentTimeMillis() } }
             }
             now < arm + cooldownMs -> SettingsButton(
@@ -600,7 +607,6 @@ fun SettingsTab(
         )
 
         SettingsButton("Set timers", btnMod, enabled = editOn) { showTimers = true }
-        SettingsButton("Permissions", btnMod) { MainActivity.openPerms.value = true }
 
         val noColor = prefs?.get(Prefs.NO_COLOR) ?: false
         ToggleChip("No color", noColor, editOn, btnMod) { on ->
@@ -615,12 +621,13 @@ fun SettingsTab(
                 "android.permission.WRITE_SECURE_SETTINGS",
             style = MaterialTheme.typography.bodySmall, color = DimDark,
         )
+        SettingsButton("Permissions", btnMod) { MainActivity.openPerms.value = true }
 
         SectionHeader("Backup")
         BackupRow(activity, prefs, editOn, scope)
 
         Spacer(Modifier.weight(1f))
-        SettingsButton("Shutdown", btnMod, enabled = editOn, container = Dark) {
+        SettingsButton("Shutdown App", btnMod, enabled = editOn, container = Dark) {
             scope.launch {
                 App.prefs.edit { it[Prefs.SHUTDOWN] = true }
                 activity.startService(
