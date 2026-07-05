@@ -2,11 +2,17 @@
 
 An Android app & website blocker that makes it hard to cheat on yourself.
 
+## Screenshots
+
+| Block List | Schedule | Settings |
+|---|---|---|
+| ![Block List](screenshots/blocklist.png) | ![Schedule](screenshots/schedule.png) | ![Settings](screenshots/settings.png) |
+
 ## How it works
 
 - **Block List** — block apps and websites, each with a daily allowance of 0–120 minutes (0 = fully blocked). Allowances reset at midnight. Adding a block or lowering an allowance is always possible; removing one or raising an allowance requires edit mode.
 - **Schedule** — weekly cheat windows during which blocking is paused. Creating or changing them requires edit mode.
-- **Edit mode** (Settings) — the anti-impulse guard: tap "Turn On", wait out a cooldown, then confirm within a short window. Both timers are configurable. Every loosening change goes through this ritual.
+- **Edit mode** (Settings) — the anti-impulse guard: tap "Turn Edit Mode On", wait out a cooldown, then confirm within a short window. Both timers are configurable. Every loosening change goes through this ritual.
 - **Enforcement** — an Accessibility Service blocks apps and tracks usage, a local VPN blocks websites at the DNS level (including DNS-over-HTTPS bypasses), and Device Admin plus a watchdog service resist uninstalling and permission revocation. Best effort, not a hard lock: a determined user can still disable it via Android settings.
 
 All data stays on the device — no backend, no accounts. Settings can be exported/imported as JSON.
