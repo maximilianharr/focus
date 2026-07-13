@@ -253,7 +253,7 @@ fun Main(activity: MainActivity) {
                 showPerms -> PermissionsScreen(activity, now) { showPerms = false }
                 tab == 0 -> BlockListTab(items, editOn, scope, now)
                 tab == 1 -> ScheduleTab(windows, editOn, scope)
-                else -> SettingsTab(activity, prefs, now, scope)
+                else -> SettingsTab(activity, prefs, now, scope, focusOn)
             }
         }
     }
@@ -518,7 +518,7 @@ fun ScheduleTab(windows: List<CheatWindow>, editOn: Boolean, scope: CoroutineSco
                             }
                         }
                     }
-                    if (editOn) IconButton({
+                    IconButton({
                         scope.launch(Dispatchers.IO) { App.dao.deleteWindow(w.id) }
                     }) { Icon(Icons.Default.Close, "Delete", tint = Dark) }
                 }
@@ -570,6 +570,7 @@ fun SettingsTab(
     prefs: androidx.datastore.preferences.core.Preferences?,
     now: Long,
     scope: CoroutineScope,
+    focusOn: Boolean,
 ) {
     val ctx = LocalContext.current
     val editOn = prefs?.get(Prefs.EDIT) ?: false
@@ -589,6 +590,9 @@ fun SettingsTab(
         when {
             editOn -> SettingsButton("Turn Edit Mode Off", btnMod, container = Dark) {
                 scope.launch { App.prefs.edit { it[Prefs.EDIT] = false; it[Prefs.ARM] = 0L } }
+            }
+            !focusOn -> SettingsButton("Turn Edit Mode On", btnMod) {
+                scope.launch { App.prefs.edit { it[Prefs.EDIT] = true; it[Prefs.ARM] = 0L } }
             }
             arm == 0L -> SettingsButton("Turn Edit Mode On", btnMod) {
                 scope.launch { App.prefs.edit { it[Prefs.ARM] = System.currentTimeMillis() } }

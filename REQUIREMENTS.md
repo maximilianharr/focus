@@ -42,6 +42,7 @@ Schedule
 - A time window can only be added if in Edit mode (see "edit mode" in settings). To indicate "clickability" make it dark if edit mode is on and bright if off.
 - Toggling weekday letters, changing start/end time, and deleting an existing time window also require edit mode - only viewing is free (since an active window disables blocking, it must go through the same cooldown ritual as other loosening changes)
 - Overnight windows (crossing midnight) and multiple overlapping windows are supported; any currently-active window disables blocking
+- If edit mode is off the user can still delete time windows as we want to encourage the user to remove toxic times
 
 Settings
 - Settings tab has multiple buttons in the following order
@@ -52,6 +53,7 @@ Settings
 - After the cooldown countdown a confirm countdown is displayed during which the button oscillated from dark/bright color at 1 Hz
 - If the user missed the cooldown timer then the edit mode will not be turned on. The botton goes back to "Turn Edit Mode On" state.
 - There is also an "edit mode" timer. The "edit mode" timer is a time window to keep edit mode alive if the app is not used. It will be revoked after this time. The "edit mode time" is not used while the user uses the app and is reset if the user re-opens the app before the timer is zero.
+- When the user is in non-focus mode the edit mode can be directly enabled
 - The cooldown/confirm/edit mode countdowns keep running even if the app is backgrounded or the screen is locked; missing the confirm window still lapses back to "Turn Edit Mode On"
 - Below the edit mode is a "Set timers" which opens a popup in which the user can set the cooldown, confirm and edit mode timers in minutes.
 - One decimal point is allowed for the timers (e.g. 0.1 for 6 seconds)

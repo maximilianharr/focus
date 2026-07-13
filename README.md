@@ -19,6 +19,17 @@ All data stays on the device — no backend, no accounts. Settings can be export
 
 ## Install
 
+### From a GitHub Release
+
+Download the `.apk` from the [Releases](../../releases) page, then either:
+
+- **On the phone**: open the downloaded file and tap through the "install unknown apps" prompt (one-time permission for your browser/file manager), or
+- **From a computer**, with the phone connected and USB debugging enabled: `adb install -r focus.apk`
+
+Read the [release disclaimer](.github/RELEASE_DISCLAIMER.md) first — the app uses Device Admin, Accessibility and VPN permissions and is intended for your own device only.
+
+### From source
+
 Needs: Android 8.0+ phone with USB debugging, `adb`, and a JDK 17 (Gradle downloads one automatically if missing).
 
 ```sh
@@ -26,7 +37,9 @@ Needs: Android 8.0+ phone with USB debugging, `adb`, and a JDK 17 (Gradle downlo
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Then grant permissions in-app via **Settings → Permissions**, or in one shot via adb:
+### Permissions
+
+Grant permissions in-app via **Settings → Permissions**, or in one shot via adb:
 
 ```sh
 adb shell pm grant com.max.focus android.permission.POST_NOTIFICATIONS
